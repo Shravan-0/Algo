@@ -1,0 +1,8 @@
+--- Backtest Report ---
+Strategy: EMA Crossover (50/200)
+Symbol: XAUUSD H1
+Total Return: 2.05%
+Sharpe Ratio: 4.04
+Max Drawdown: -0.75%
+Win Rate: 50.00%
+Profit Factor: 5.72

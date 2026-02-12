@@ -13,7 +13,7 @@ logs/
 *.log
 
 # Data
-data/
+
 
 # Jupyter
 .ipynb_checkpoints/
