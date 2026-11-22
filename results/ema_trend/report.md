@@ -2,8 +2,10 @@
 
 Dataset: C:\MarketData\XAUUSD\processed\XAUUSD_M5.parquet
 Target timeframe: 1h
-Complete bars retained: 64,919
-Incomplete target buckets excluded: 31,488
+Complete H1 bars retained: 64,919
+Empty H1 buckets: 31,399
+Non-empty partial H1 buckets excluded: 89
+Malformed H1 buckets excluded: 0
 Initial cash per test: 100,000.00
 Fees per order: 0.0200%
 Slippage per order: 0.0100%
@@ -12,7 +14,7 @@ EMA indicators are calculated chronologically using available historical data.
 Signals are shifted one bar and executed at the next bar open.
 In-sample and out-of-sample portfolios start independently with flat positions.
 
-Position sizing uses VectorBT defaults; this is not a broker contract or risk-based sizing model.
+Position sizing is explicitly size=inf, size_type=amount, accumulate=False; this is not fixed-risk sizing or a broker contract model.
 
 | Period | Bars | Return | Max DD | Closed trades | Open trades | Win rate | Profit factor |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -26,4 +28,4 @@ Position sizing uses VectorBT defaults; this is not a broker contract or risk-ba
 - Fees and slippage are assumptions.
 - Single instrument and long-only strategy.
 - Incomplete H1 buckets are excluded.
-- Position sizing requires further specification.
+- All-in position sizing is a research assumption, not broker lot sizing or fixed-risk sizing.

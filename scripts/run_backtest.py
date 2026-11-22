@@ -25,7 +25,7 @@ def load_config():
 
 
 def resample_complete_ohlcv(frame, timeframe, source_timeframe="5min"):
-    """Keep only target bars containing every expected source candle."""
+    """Keep only target bars containing every expected source timestamp."""
     target_delta = pd.Timedelta(timeframe)
     source_delta = pd.Timedelta(source_timeframe)
 
@@ -33,12 +33,39 @@ def resample_complete_ohlcv(frame, timeframe, source_timeframe="5min"):
         raise ValueError("Target timeframe must be a multiple of source timeframe.")
 
     expected = int(target_delta / source_delta)
+    expected_slots = set(range(expected))
 
-    grouped = frame.resample(
-        timeframe,
-        label="left",
-        closed="left",
+    grouped = frame.resample(timeframe, label="left", closed="left")
+    counts = grouped["close"].count()
+
+    # Validate the exact expected source-candle positions within each bucket.
+    bucket_starts = frame.index.floor(timeframe)
+    slot_numbers = ((frame.index - bucket_starts) / source_delta).astype(int)
+    slot_series = pd.Series(slot_numbers, index=frame.index)
+
+    valid_slots = slot_series.resample(
+        timeframe, label="left", closed="left"
+    ).agg(
+        lambda values: (
+            len(values) == expected
+            and set(values) == expected_slots
+        )
     )
+
+    complete_mask = (
+        counts.eq(expected)
+        & valid_slots.reindex(counts.index, fill_value=False)
+    )
+    empty_mask = counts.eq(0)
+    partial_mask = (counts > 0) & (counts < expected)
+    malformed_mask = (counts >= expected) & ~complete_mask
+
+    audit = {
+        "complete": int(complete_mask.sum()),
+        "empty": int(empty_mask.sum()),
+        "partial": int(partial_mask.sum()),
+        "malformed": int(malformed_mask.sum()),
+    }
 
     result = grouped.agg({
         "open": "first",
@@ -48,14 +75,10 @@ def resample_complete_ohlcv(frame, timeframe, source_timeframe="5min"):
         "volume": "sum",
     })
 
-    counts = grouped["close"].count()
-    complete = counts == expected
-
-    excluded = int((~complete).sum())
-    result = result.loc[complete]
+    result = result.loc[complete_mask]
     result = result.dropna(subset=["open", "high", "low", "close"])
 
-    return result, excluded
+    return result, audit
 
 
 def metric(value):
@@ -74,6 +97,9 @@ def run_period(data, entries, exits, label, cash, fees, slippage, timeframe):
         init_cash=cash,
         fees=fees,
         slippage=slippage,
+        size=float("inf"),
+        size_type="amount",
+        accumulate=False,
         freq=timeframe,
     )
 
@@ -128,7 +154,7 @@ def main():
 
     m5 = m5.sort_index()
 
-    h1, excluded = resample_complete_ohlcv(
+    h1, bucket_audit = resample_complete_ohlcv(
         m5,
         timeframe,
         source_timeframe,
@@ -195,8 +221,10 @@ def main():
         "",
         f"Dataset: {source}",
         f"Target timeframe: {timeframe}",
-        f"Complete bars retained: {len(h1):,}",
-        f"Incomplete target buckets excluded: {excluded:,}",
+        f"Complete H1 bars retained: {bucket_audit['complete']:,}",
+        f"Empty H1 buckets: {bucket_audit['empty']:,}",
+        f"Non-empty partial H1 buckets excluded: {bucket_audit['partial']:,}",
+        f"Malformed H1 buckets excluded: {bucket_audit['malformed']:,}",
         f"Initial cash per test: {cash:,.2f}",
         f"Fees per order: {fees:.4%}",
         f"Slippage per order: {slippage:.4%}",
@@ -205,7 +233,7 @@ def main():
         "Signals are shifted one bar and executed at the next bar open.",
         "In-sample and out-of-sample portfolios start independently with flat positions.",
         "",
-        "Position sizing uses VectorBT defaults; this is not a broker contract or risk-based sizing model.",
+        "Position sizing is explicitly size=inf, size_type=amount, accumulate=False; this is not fixed-risk sizing or a broker contract model.",
         "",
         "| Period | Bars | Return | Max DD | Closed trades | Open trades | Win rate | Profit factor |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
@@ -228,7 +256,7 @@ def main():
         "- Fees and slippage are assumptions.",
         "- Single instrument and long-only strategy.",
         "- Incomplete H1 buckets are excluded.",
-        "- Position sizing requires further specification.",
+        "- All-in position sizing is a research assumption, not broker lot sizing or fixed-risk sizing.",
         "",
     ]
 
