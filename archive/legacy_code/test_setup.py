@@ -3,4 +3,4 @@ import pandas as pd
 import vectorbt as vbt
 import MetaTrader5 as mt5
 
-print("W_quant lab ready 🚀")
+print("Algo lab ready 🚀")

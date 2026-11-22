@@ -1,0 +1,17 @@
+﻿data:
+  # Override with the XAUUSD_M5_DIR environment variable.
+  input_dir: "C:/MarketData/XAUUSD/M5"
+  output_file: "C:/MarketData/XAUUSD/processed/XAUUSD_M5.parquet"
+
+backtest:
+  symbol: "XAUUSD"
+  source_timeframe: "5min"
+  timeframe: "1h"
+  initial_cash: 100000
+  fees: 0.0002
+  slippage: 0.0001
+  in_sample_end: "2021-12-31 23:59:59+00:00"
+  out_of_sample_start: "2022-01-01 00:00:00+00:00"
+  out_of_sample_end: "2025-12-31 23:59:59+00:00"
+
+
